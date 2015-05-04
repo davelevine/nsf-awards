@@ -1,70 +1,475 @@
-<!-- A choropleth example by Mike Bostock.  Originally from http://bl.ocks.org/mbostock/4060606-->
-
 <!DOCTYPE html>
-<meta charset="utf-8">
-<style>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>D3: Setting path fills</title>
+		<script type="text/javascript" src="d3/d3.js"></script>
+		<style type="text/css">
+			body{
+				width: 900px;
+				height: 600px;
+				background: #d9d9d9;
+			}
+			.title{
+				font-size:18px;
+				font-weight: bold;
+				width: 155px;
+				text-align: center;
+			}
+			.filter_div {
+				margin-top: 3px;
+			}
+			.filter{
+				background: gray;
+				color: white;
+				padding: 3px 7px;
+				margin: 3px;
+				cursor: pointer;
+			}
+			.year{
+				background: gray;
+				color: white;
+				padding: 5px 7px;
+				cursor: pointer;
+			}
+			.barchart{
+				margin-left: 500px;
+				margin-top: 400px;
+			}
+			.tooltip{
+				pointer-events: none;
+			}
+			/* Added 5/3/2015 TT */
+			.axis {
+		  		font: 10px sans-serif;
+			}
+			.axis path,
+			.axis line {
+			  fill: none;
+			  stroke: #000;
+			  shape-rendering: crispEdges;
+			}
+			/* Added 5/3/2015 TT */
+			#top_title{
+				font-size: 24px;
+				font-weight: bold;
+				width: 820px;
+				text-align: center;
+			}
+			#small_title{
+				font-size: 16px;
+				font-weight: bold;
+				width: 820px;
+				text-align: center;
+			}
+			#filter_options {
+				position: absolute;
+				top: 10px;
+				left: 700px; 
+				background: #c7c7c7;
+				padding: 5px 10px 13px 10px;
+			}
+			#timeline {
+				position: absolute;
+				top: 460px;
+				left: 10px;
+				background: #c7c7c7;
+				padding: 10px;
+			}
+			/* New divs for svg graphics */
+			/* ----------------------------------------------------------- */
+			#map{
+				position: absolute;
+				top: 40px;
+				left: 10px;
+			}
+			#barchart{
+				position: absolute;
+				top: 380px;
+				left: 600px;
+			}
+			/* ----------------------------------------------------------- */
+		</style>
+	</head>
+	<body>
+		<div id="top_title">Distribution of National Science Foundation Awards</div>
+		<div id="small_title">Percentage of Yearly Award Total</div>
+		<!-- NEW DIVS--> 
+		<div id="map"> </div>
+		<div id="barchart"> </div>
+		<!-- NEW DIVS-->
+		<div id="filter_options">
+			<span class="title">Select Discipline:</span><br>
+			<div id="bio" class="filter">Biological Sciences</div>
+			<div id="comp" class="filter">Computer & <br>Information Science</div>
+			<div id="edu" class="filter">Education & <br>Human Resources</div>
+			<div id="eng" class="filter">Engineering</div>
+			<div id="geo" class="filter">Geosciences</div>
+			<div id="math" class="filter">Mathematical & <br>Physical Sciences</div>
+			<div id="soc" class="filter">Social & <br>Economic Sciences</div>
+			<div id="all" class="filter">All Disciplines</div>
+		</div>
 
-.counties {
-  fill: none;
-}
+		<div id="timeline">
+			<div> <span class="title">Select Year: </span>
+				<span class="year" id ="y1974">1974</span>
+				<span class="year" id ="y1979">1979</span>
+				<span class="year" id ="y1984">1984</span>
+				<span class="year" id ="y1989">1989</span>
+				<span class="year" id ="y1994">1994</span>
+				<span class="year" id ="y1999">1999</span>
+				<span class="year" id ="y2004">2004</span>
+				<span class="year" id ="y2009">2009</span>
+				<span class="year" id ="y2014">2014</span>
+			</div>
+		</div>
+		 
+		
+		<script type="text/javascript">
 
-.states {
-  fill: none;
-  stroke: #fff;
-  stroke-linejoin: round;
-}
+			var w = 670;
+			var h = 460;
+			var scale = 600;
+			var all_scale = 800;
+			var current_subj = "all";
+			var current_year = "y2014";
+			var colors = { 
+				"bio":"#9999FF", 
+				"comp":"#FFCC66", 
+				"edu":"#CCFF99", 
+				"eng":"#FFA3A3", 
+				"geo":"#E9E89A", 
+				"math":"#DAB5FF", 
+				"soc":"#99FFCC", 
+				"all":"#D1D1D1" };
+			var cir_colors = {
+				"bio":"#0000FF", 
+				"comp":"#FF9900", 
+				"edu":"#43BF43", 
+				"eng":"#FF6666", 
+				"geo":"#FFD119", 
+				"math":"#9966FF", 
+				"soc":"#00CC99", 
+				"all":"#545454" };
 
-.q0-9 { fill:rgb(247,251,255); }
-.q1-9 { fill:rgb(222,235,247); }
-.q2-9 { fill:rgb(198,219,239); }
-.q3-9 { fill:rgb(158,202,225); }
-.q4-9 { fill:rgb(107,174,214); }
-.q5-9 { fill:rgb(66,146,198); }
-.q6-9 { fill:rgb(33,113,181); }
-.q7-9 { fill:rgb(8,81,156); }
-.q8-9 { fill:rgb(8,48,107); }
+			//  BAR CHART VARS 
+			// --------------------------
 
-</style>
-<body>
-Acknowledgement:  This "Choropleth" example is originally from Mike Bostock's work at http://bl.ocks.org/mbostock/4060606.
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/queue-async/1.0.7/queue.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.min.js"></script>
-<script>
+			var formatTime = d3.time.format("%Y"),
+    			formatYr = function(d) { return formatTime(new Date(1974+5*d, 0, 1)); };
+			// --------------------------
 
-var width = 960,
-    height = 500;
+			var projection = d3.geo.albersUsa().translate([w/2, h/2-50]).scale([800]);
+			var path = d3.geo.path().projection(projection);
+			var svg = d3.select("#map").append("svg").attr("width", w).attr("height", h);
 
-var rateById = d3.map();
+			d3.select("#"+current_year).style("background", "#545454");
+			d3.select("#"+current_subj).style({
+				background: colors[current_subj],
+				color: "black"
+			});
 
-var quantize = d3.scale.quantize()
-    .domain([0, .15])
-    .range(d3.range(9).map(function(i) { return "q" + i + "-9"; }));
+			d3.csv(current_year+".csv", function(data) {
+				d3.json("us-states-centr.json", function(json) {
 
-var path = d3.geo.path();
+					for (var i = 0; i < data.length; i++) {
+						var dataState = data[i].state;
+						var stateValues = {
+							"bio":parseFloat(data[i].bio),
+							"comp":parseFloat(data[i].comp),
+							"edu":parseFloat(data[i].edu),
+							"eng":parseFloat(data[i].eng),
+							"geo":parseFloat(data[i].geo),
+							"math":parseFloat(data[i].math),
+							"soc":parseFloat(data[i].soc),
+							"all":parseFloat(data[i].all) };
 
-var svg = d3.select("body").append("svg")
-    .attr("width", width)
-    .attr("height", height);
+						for (var j = 0; j < json.features.length; j++) {
+							var jsonState = json.features[j].properties.name;
+							if (dataState == jsonState) {
+								json.features[j].properties.values = stateValues;
+								break;
+							}
+						}		
+					}
 
-queue()
-    .defer(d3.json, "us.json")
-    .defer(d3.tsv, "unemployment.tsv", function(d) { rateById.set(d.id, +d.rate); })
-    .await(ready);
+					svg.selectAll("path")
+						.data(json.features)
+						.enter()
+						.append("path")
+						.attr("d", path)
+						.attr({
+							fill: "rgb(180,180,180)",
+							stroke: "white",
+							"stroke-width": .5});
 
-function ready(error, us) {
-  svg.append("g")
-      .attr("class", "counties")
-    .selectAll("path")
-      .data(topojson.feature(us, us.objects.counties).features)
-    .enter().append("path")
-      .attr("class", function(d) { return quantize(rateById.get(d.id)); })
-      .attr("d", path);
+					svg.selectAll("circle")
+						.data(json.features)
+						.enter()
+						.append("circle")
+						.attr({
+							cx: function(d) { 
+								return projection(d.centr.coordinates)[0]; },
+							cy: function(d) { 
+								return projection(d.centr.coordinates)[1]; },
+							r: function(d) { 
+								return  Math.sqrt(d.properties.values[current_subj]*scale); },
+						})
+						.style("fill",cir_colors[current_subj])
+						.style("opacity",0.7)
+						.on("mouseover", function(d) {
+							var xPos = parseFloat(d3.select(this).attr("cx"));
+							var yPos = parseFloat(d3.select(this).attr("cy"));
+							d3.select(this)
+								.style({
+									fill: colors[current_subj],
+									opacity: 1,
+									stroke: cir_colors[current_subj],
+									"stroke-width": "2px"
+								});
+							svg.append("text")
+								.attr({
+									class: "tooltip",
+									x: xPos,
+									y: yPos-6,
+									"text-anchor": "middle",
+									"font-family": "sans-serif",
+									"font-size": "11px",
+									"fill": "black"	})
+								.text(d.properties.name	+ ":");
+							svg.append("text")
+								.attr({
+									class: "tooltip",
+									x: xPos,
+									y: yPos+6,
+									"text-anchor": "middle",
+									"font-family": "sans-serif",
+									"font-size": "11px",
+									"fill": "black"	})
+								.text(d.properties.values[current_subj] + "% of " + current_year.split("y")[1] + " total" );
+							})
+						.on("mouseout", function() { 
+							d3.select(this)
+								.style({
+									fill: cir_colors[current_subj],
+									opacity: 0.7,
+									"stroke-width": "0px"
+								});
+							d3.selectAll(".tooltip").remove(); 
+						}); 
+				});
+			});
 
-  svg.append("path")
-      .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
-      .attr("class", "states")
-      .attr("d", path);
-}
+			d3.selectAll(".filter")
+				.on("mouseover", function() {
+					var subj = d3.select(this).attr("id");
+					d3.select(this)
+						.style("background", colors[subj])
+						.style("color", "black"); 
+				})
+				.on("mouseout", function() {
+					d3.select(this)
+						.style("background", "gray")
+						.style("color", "white");
+					d3.select("#"+current_subj).style({
+						background: colors[current_subj],
+						color: "black"
+					});
+				})
+				.on("click", update_filter);
 
-</script>
+			d3.selectAll(".year")
+				.on("mouseover", function() {
+					var subj = d3.select(this).attr("id");
+					d3.select(this).style({
+						background: "#D1D1D1",
+						color: "black"
+					});
+				})
+				.on("mouseout", function() {
+					d3.select(this).style({
+						background: "gray",
+						color: "white" 
+					});
+					d3.select("#"+current_year).style({
+						background: "#545454",
+						color: "white"
+					});
+				})
+
+				.on("click", update_year);
+
+			// Start BAR CHART
+			// -----------------------------------------------------------
+			var margin = {top: 20, right: 30, bottom: 30, left: 70},
+	    	    bar_w = 260 - margin.left - margin.right,
+	    	    bar_h = 150 - margin.top - margin.bottom;
+
+			var svg2 = d3.select("#barchart")
+				.append("svg")
+				.attr({
+					width: bar_w + margin.left + margin.right,
+					height: bar_h + margin.top + margin.bottom})
+				.append("g")
+		    	    .attr("transform", "translate("+ margin.left + "," + margin.top + ")");
+
+		   	var xScale = d3.scale.linear()
+		   		.domain([0,8])
+		   		.range([0, bar_w]);
+		   		
+
+		   	var yScale = d3.scale.linear()
+		   		.range([bar_h,0]);
+
+		   	var xAxis = d3.svg.axis()
+				    .scale(xScale)
+				    .orient("bottom")
+				    .tickFormat(formatYr);
+
+			var yAxis = d3.svg.axis()
+				    .scale(yScale)
+				    .orient("left")
+				    .ticks(10);
+
+			d3.csv("bar.csv", function(data) {
+				dataset = data;
+				if (current_subj == "all") { 
+					maxVal = 8000; 
+					label = "$ (Millions)"; }
+				else { 
+					maxVal = 40; 
+					label = "% Total Budget";}
+
+				yScale.domain([0, maxVal]);
+
+				svg2.append("g")
+			        .attr("class", "x axis")
+			        .attr("transform", "translate("+ xScale(1)/2 +"," + bar_h + ")")
+			        .call(xAxis)
+			      .selectAll("text")
+				    .attr("transform", "rotate(-90)")
+				    .attr("y", -3)
+				    .attr("x", -30)
+				    .style("text-anchor", "start");
+
+			  	svg2.append("g")
+				    .attr("class", "y axis")
+				    .call(yAxis)
+				  .append("text")
+				    .attr("class", "y axis_label")
+				    .attr("transform", "rotate(-90)")
+				    .attr("y", -45)
+				    .attr("x", -bar_h)
+				    .attr("dy", ".71em")
+				    .style("text-anchor", "top")
+				    .text(label);
+
+				svg2.selectAll("rect")
+					.data(dataset)
+					.enter()
+					.append("rect")
+					.attr({
+						x: function(d,i) { return xScale(i); },
+						width: 0.9*xScale(1),
+						y: function(d,i) { return yScale(d[current_subj]); },
+						height: function(d) { return  bar_h - yScale(d[current_subj]); },
+						fill: cir_colors[current_subj]
+					});
+				});
+			// -----------------------------------------------------------
+			// End BAR CHART
+
+			function update_filter() {
+				d3.selectAll(".filter").style({
+					background: "gray",
+					color: "white"
+				});
+				current_subj = d3.select(this).attr("id");
+				d3.select("#"+current_subj).style({
+					background: colors[current_subj],
+					color: "black"
+				});
+				svg.selectAll("circle")
+					.transition()
+					.duration(500)
+					.attr("r", function(d) { 
+						return Math.sqrt(d.properties.values[current_subj]*scale ); })
+					.style("fill",cir_colors[current_subj])
+					.style("opacity",0.7); 
+
+			// Updates BAR CHART
+			// -----------------------------------------------------------
+
+				if (current_subj == "all") { 
+					maxVal = 8000; 
+					label = "$ (Millions)"; }
+				else { 
+					maxVal = 40; 
+					label = "% Total Budget";}
+
+				yScale.domain([0, maxVal]);
+				  
+				svg2.selectAll("rect")
+					.transition()
+					.duration(500)
+					.attr({
+						y: function(d,i) { return yScale(d[current_subj]); },
+						height: function(d,i) { return bar_h - yScale(d[current_subj]); },
+						fill: cir_colors[current_subj]
+					});
+
+				svg2.select(".y.axis")
+			   		.transition()
+				    .duration(500)
+				    .call(yAxis);
+
+				svg2.select(".y.axis_label")
+				    .text(label);
+			// -----------------------------------------------------------    
+			 }
+
+			function update_year() {
+				d3.selectAll(".year").style("background", "gray");
+				current_year = d3.select(this).attr("id");
+				d3.select("#"+current_year).style("background", "#545454");
+
+				d3.csv(current_year+".csv", function(data) {
+					d3.json("us-states-centr.json", function(json) {
+
+					for (var i = 0; i < data.length; i++) {
+
+						var dataState = data[i].state;
+						var stateValues = {
+							"bio":parseFloat(data[i].bio),
+							"comp":parseFloat(data[i].comp),
+							"edu":parseFloat(data[i].edu),
+							"eng":parseFloat(data[i].eng),
+							"geo":parseFloat(data[i].geo),
+							"math":parseFloat(data[i].math),
+							"soc":parseFloat(data[i].soc),
+							"all":parseFloat(data[i].all) };
+
+						for (var j = 0; j < json.features.length; j++) {
+							var jsonState = json.features[j].properties.name;
+							if (dataState == jsonState) {
+								json.features[j].properties.values = stateValues;
+								break;
+							}
+						}		
+					}
+
+					svg.selectAll("circle")
+						.data(json.features)
+						.transition()
+						.duration(500)
+						.attr("r", function(d) { 
+							return Math.sqrt(d.properties.values[current_subj]*scale ); })
+						.style("fill",cir_colors[current_subj])
+						.style("opacity",0.7); 
+					});
+				});
+			};
+
+		</script>
+	</body>
+</html>
