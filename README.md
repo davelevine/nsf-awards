@@ -1,17 +1,15 @@
-a3-jheer-domoritz-jasnyder
+a3-rbbarber-thonstat
 ===============
 
 ## Team Members
 
-1. Jeffrer Heer jheer@uw.edu
-2. Dominik Moritz domoritz@uw.edu
-3. Jeff Snyder jasnyder@uw.edu
+1. Ramona Barber rbbarber@uw.edu
+2. Travis Thonstad thonstat@uw.edu
 
 ## Project Name
 
 This is an example repository for your assignment 3 submission. 
 (Put your a brief description of your final interactive visualization application and your dataset here.)
-
 
 ## Running Instructions
 
@@ -27,11 +25,9 @@ If you put your work online, please also write a [one-line description and add a
 
 Put either your storyboard content or a [link to your storyboard pdf file](storyboard.pdf?raw=true) here. Just like A2, you can use any software to create a *reasonable* pdf storyboard.
 
-
 ### Changes between Storyboard and the Final Implementation
 
 A paragraph explaining changes between the storyboard and the final implementation.
-
 
 ## Development Process
 
