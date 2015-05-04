@@ -16,7 +16,7 @@ Access our visualization at http://cse512-15s.github.io/a3-rbbarber-thonstat/
 
 ## Story Board
 
-[link to your storyboard pdf file](storyboard.pdf?raw=true)
+[link to storyboard pdf file](storyboard.pdf?raw=true)
 
 ### Changes between Storyboard and the Final Implementation
 
